@@ -11,6 +11,7 @@ const vonage = require('../routers/vonage')
 //const Vonage = require('@vonage/server-sdk')
 
 const ImageController = require('../controllers/image')
+const express = require('express')
 //const express = require('express')
 
 // const vonage = new Vonage({
@@ -19,7 +20,7 @@ const ImageController = require('../controllers/image')
 // })
 
 
-exports.getAll = (req,res,next) => {
+exports.getAll = (req,res) => {
     User.find()
     .then(data=>{
         res.status(200).json({
@@ -32,11 +33,20 @@ exports.getAll = (req,res,next) => {
 exports.getOne = async (req,res)=>{
     try {
         const user = await User.findById(req.params.userId)
-        const image = await Image.findById(user.avatarId)
+        const avatarUrl = await ImageController.getUrl(user.avatarId)
+        const temp ={
+            _id: user._id,
+            username: user.username,
+            phoneNumber: user.phoneNumber,
+            listFriendId: [],
+            avatarUrl: avatarUrl,
+            token: user.token,
+            age: user.age,
+            sex: user.sex
+        }
         res.status(200).json({
             message: 'get one',
-            user,
-            imageUrl: image.imageUrl
+            user: temp
         })
     } catch (error) {
         console.log(error)
@@ -65,7 +75,9 @@ exports.signUp = (req,res) => {
                             phoneNumber: req.body.phonenumber,
                             password: hash,
                             username: req.body.username,
-                            avatarId: '001'
+                            avatarId: '001',
+                            age: '18',
+                            sex: 'male'
                         });
                         user
                             .save()
@@ -94,38 +106,48 @@ exports.signUp = (req,res) => {
         })
 }
 
-exports.logIn = (req,res)=>{
-    User
-        .findOne({phoneNumber: req.body.phonenumber})
-        .then(user=>{
-            if (!user) {
-                console.log('type: Not exists user')
-                return res.status(200).json({ type: 'Not exists user' })
-            } else {
-                bcrypt.compare(req.body.password, user.password, (err, result) => {
-                    if (result) {
-                        const token = jwt.sign({
-                            userId: user._id
-                        }, process.env.JWT_KEY ,{
-                            expiresIn: '1h'
-                        })
-                        user.token = token
-                        user.save()
-                        console.log(token)
-                        ///////////
-                        // const decoded = jwt.verify(user.token, process.env.JWT_KEY)
-                        // console.log('DECODE ' + decoded.userId)
-                        //////////////            
-                        return res.status(200).json({
-                            type: 'login successful',
-                            user: user
-                        })
-                    }
-                    console.log('type: login fail')
-                    return res.status(200).json({ type: 'Login fail' })
+exports.logIn = async (req,res) => {
+    const user = await User.findOne({phoneNumber: req.body.phonenumber})
+    if (!user) {
+        console.log('type: Not exists user')
+        res.status(200).json({ type: 'Not exists user' })
+    } else {
+        const avatarUrl = await ImageController.getUrl(user.avatarId)
+        bcrypt.compare(req.body.password, user.password, (err, result) => {
+            if (result) {
+                const token = jwt.sign({
+                    userId: user._id
+                }, process.env.JWT_KEY ,{
+                    expiresIn: '1h'
+                })
+                user.token = token
+                user.save()
+                //console.log(token)
+                ///////////
+                // const decoded = jwt.verify(user.token, process.env.JWT_KEY)
+                // console.log('DECODE ' + decoded.userId)
+                //////////////
+                const temp ={
+                    _id: user._id,
+                    username: user.username,
+                    phoneNumber: user.phoneNumber,
+                    listFriendId: [],
+                    avatarUrl: avatarUrl,
+                    token: user.token,
+                    age: user.age,
+                    sex: user.sex
+                }
+                return res.status(200).json({
+                    type: 'login successful',
+                    user: temp
+                    
                 })
             }
+            console.log('type: login fail')
+            return res.status(200).json({ type: 'Login fail' })
         })
+    }
+
 }
 
 exports.sendSms = (req,res)=>{
@@ -162,6 +184,22 @@ exports.sendSms = (req,res)=>{
     //     }
     //   }
     // );
+}
+
+exports.updateInfo = async (req,res) =>{
+    try {
+        const user = await User.findById(req.params.userId)
+        user.username = req.body.username
+        user.age = req.body.age
+        user.sex = req.body.sex
+        await user.save()
+        res.status(200).json({
+            message: 'update successful',
+            user
+        })
+    } catch (error) {
+        console.log('err')
+    }
 }
 
 exports.upAvatar = async (req,res)=>{
@@ -293,13 +331,13 @@ exports.deleteAll = (req,res)=>{
     })
 }
 
-// exports.deleteOne = (req,res)=>{
-//     User    
-//         .findOne({_id: req.params.userId})
-//         .remove()
-//         .then(()=>{
-//             res.status(200).json({
-//                 message: 'delete one'
-//             })
-//         })
-// }
+exports.deleteOne = (req,res)=>{
+    User    
+        .findOne({_id: req.params.userId})
+        .remove()
+        .then(()=>{
+            res.status(200).json({
+                message: 'delete one'
+            })
+        })
+}

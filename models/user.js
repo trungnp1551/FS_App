@@ -13,6 +13,8 @@ const userSchema = mongoose.Schema({
     resetToken: String,
     resetTokenExpires: Date,
     avatarId: String,
+    age: String,
+    sex: String
 
 },{
     versionKey: false

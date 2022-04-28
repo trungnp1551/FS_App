@@ -21,7 +21,7 @@ router
 
 router
     .route('/:userId')
-    .get(checkAuth, UserController.getOne)
+    .get(/*checkAuth,*/ UserController.getOne)
     .delete(UserController.deleteOne)
 
 router
@@ -35,6 +35,10 @@ router
 router
     .route('/:userId/upAvatar')
     .post(upload.single("avatar"),UserController.upAvatar)
+
+router
+    .route('/:userId/updateInfo')
+    .post(UserController.updateInfo)
 
 router
     .route('/:userId/getListFriend')
