@@ -31,6 +31,7 @@ router
 router
     .route('/:userId/addfriend/:accFriendId')
     .get(UserController.addFriend)
+    .delete(UserController.deleteFriend)
 
 router
     .route('/:userId/upAvatar')
@@ -43,5 +44,6 @@ router
 router
     .route('/:userId/getListFriend')
     .get(UserController.getListFriend)
+    
     
 module.exports = router;

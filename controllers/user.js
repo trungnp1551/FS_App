@@ -77,7 +77,8 @@ exports.signUp = (req,res) => {
                             username: req.body.username,
                             avatarId: '001',
                             age: '18',
-                            sex: 'male'
+                            sex: 'male',
+                            recentState: false
                         });
                         user
                             .save()
@@ -121,6 +122,7 @@ exports.logIn = async (req,res) => {
                     expiresIn: '1h'
                 })
                 user.token = token
+                user.recentState = true
                 user.save()
                 //console.log(token)
                 ///////////
@@ -234,15 +236,19 @@ exports.upAvatar = async (req,res)=>{
 
 exports.addFriend = async (req,res) =>{
     try {
-        const user = await User.findById(req.params.userId)
+        let accUserId = req.params.userId
         let accFriendId = req.params.accFriendId
+        const user = await User.findById(accUserId)
+        const userFriend = await User.findById(accFriendId)
         //console.log(accFriendId)
         user.listFriendId.push(accFriendId)
+        userFriend.listFriendId.push(accUserId)
         await user.save()
+        await userFriend.save()
         
         res.status(200).json({
             message: 'add friend successful',
-            list: user.listFriendId
+            //list: user.listFriendId
         })
     } catch (error) {
         console.log(error)
@@ -276,7 +282,8 @@ exports.getListFriend = async (req,res) => {
             const temp = {
                 userId: userFriend._id,
                 username: userFriend.username,
-                avatarUrl: await ImageController.getUrl(userFriend.avatarId)
+                avatarUrl: await ImageController.getUrl(userFriend.avatarId),
+                recentState: userFriend.recentState
             }
             arrTemp.push(temp)
         }

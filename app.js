@@ -45,4 +45,6 @@ app.use(bodyParser.json());
 app.use('/user',userRouter)
 // app.use('/socket',socketRouter)
 
+
+
 module.exports = app;

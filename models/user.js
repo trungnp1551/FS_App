@@ -14,8 +14,8 @@ const userSchema = mongoose.Schema({
     resetTokenExpires: Date,
     avatarId: String,
     age: String,
-    sex: String
-
+    sex: String,
+    recentState: Boolean
 },{
     versionKey: false
 })
