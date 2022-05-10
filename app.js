@@ -15,27 +15,27 @@ const nexmo = new Nexmo({
 const userRouter = require('./routers/user')
 // const socketRouter = require('./routers/socket')
 
-// mongoose
-//     .connect(process.env.DB_CONNECTION_local, {
-//         useNewUrlParser: true,
-//         useUnifiedTopology: true
-//     })
-//     .then(() => {
-//         console.log('mongo connected')
-//     })
-//     .catch(err => {
-//         console.log(err);
-//         console.log('connect fail')
-//     });
-
 mongoose
-    .connect('mongodb://localhost:27017/fs-app')
-    .then(()=>{
-        console.log('mongo connected...')
+    .connect(process.env.DB_CONNECTION, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
     })
-    .catch(err=>{
-        console.log(err)
+    .then(() => {
+        console.log('mongo connected')
     })
+    .catch(err => {
+        console.log(err);
+        console.log('connect fail')
+    });
+
+// mongoose
+//     .connect('mongodb://localhost:27017/fs-app')
+//     .then(()=>{
+//         console.log('mongo connected...')
+//     })
+//     .catch(err=>{
+//         console.log(err)
+//     })
 
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({extended: false}));
