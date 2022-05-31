@@ -20,30 +20,28 @@ const express = require('express')
 // })
 
 
-exports.getAll = (req,res) => {
+exports.getAll = (req, res) => {
     User.find()
-    .then(data=>{
-        res.status(200).json({
-            message: 'get all',
-            data,
+        .then(data => {
+            res.status(200).json({
+                message: 'get all',
+                data,
+            })
         })
-    })
 }
 
-exports.getOne = async (req,res)=>{
+exports.getOne = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         const avatarUrl = await ImageController.getUrl(user.avatarId)
-        const temp ={
-            _id: user._id,
+
+        const temp = {
+            userId: user._id,
             username: user.username,
-            phoneNumber: user.phoneNumber,
-            listFriendId: [],
             avatarUrl: avatarUrl,
-            token: user.token,
-            age: user.age,
-            sex: user.sex
+            recentState: user.recentState
         }
+
         res.status(200).json({
             message: 'get one',
             user: temp
@@ -53,23 +51,19 @@ exports.getOne = async (req,res)=>{
     }
 }
 
-exports.signUp = (req,res) => {
+exports.signUp = (req, res) => {
     User
-        .findOne({phoneNumber: req.body.phonenumber})
+        .findOne({ phoneNumber: req.body.phonenumber })
         .then(user => {
-            if(user){
+            if (user) {
                 return res.status(200).json({
                     message: 'Account exists'
                 })
-            }else{
-                bcrypt.hash(req.body.password, 10, (err,hash)=>{
-                    if(err){
-                        return res.status(200).json({message: 'err'})
-                    }else{
-                        //const image = ImageController.upload(req.file.path)
-                        // const image = new Image({
-                        //     _id:
-                        // })
+            } else {
+                bcrypt.hash(req.body.password, 10, (err, hash) => {
+                    if (err) {
+                        return res.status(200).json({ message: 'err' })
+                    } else {
                         const user = new User({
                             _id: new mongoose.Types.ObjectId(),
                             phoneNumber: req.body.phonenumber,
@@ -82,33 +76,33 @@ exports.signUp = (req,res) => {
                         });
                         user
                             .save()
-                            .then(user=>{
+                            .then(user => {
                                 res.status(200).json({
-                                    message:'create successful',
+                                    message: 'create successful',
                                     user
                                 })
                             })
                             .catch(err => {
                                 console.log(err),
-                                res.status(504).json({
-                                    message:'err'
-                                })
+                                    res.status(504).json({
+                                        message: 'err'
+                                    })
                             })
-        
+
                     }
                 })
             }
         })
-        .catch(err=>{
+        .catch(err => {
             console.log(err),
-            res.status(504).json({
-                message:'err'
-            })
+                res.status(504).json({
+                    message: 'err'
+                })
         })
 }
 
-exports.logIn = async (req,res) => {
-    const user = await User.findOne({phoneNumber: req.body.phonenumber})
+exports.logIn = async (req, res) => {
+    const user = await User.findOne({ phoneNumber: req.body.phonenumber })
     if (!user) {
         console.log('type: Not exists user')
         res.status(200).json({ type: 'Not exists user' })
@@ -118,7 +112,7 @@ exports.logIn = async (req,res) => {
             if (result) {
                 const token = jwt.sign({
                     userId: user._id
-                }, process.env.JWT_KEY ,{
+                }, process.env.JWT_KEY, {
                     expiresIn: '1h'
                 })
                 user.token = token
@@ -129,7 +123,7 @@ exports.logIn = async (req,res) => {
                 // const decoded = jwt.verify(user.token, process.env.JWT_KEY)
                 // console.log('DECODE ' + decoded.userId)
                 //////////////
-                const temp ={
+                const temp = {
                     _id: user._id,
                     username: user.username,
                     phoneNumber: user.phoneNumber,
@@ -142,7 +136,7 @@ exports.logIn = async (req,res) => {
                 return res.status(200).json({
                     type: 'login successful',
                     user: temp
-                    
+
                 })
             }
             console.log('type: login fail')
@@ -152,7 +146,7 @@ exports.logIn = async (req,res) => {
 
 }
 
-exports.sendSms = (req,res)=>{
+exports.sendSms = (req, res) => {
     const from = "FS_APP"
     const to = req.body.phonenumber
     const text = req.body.text
@@ -161,14 +155,14 @@ exports.sendSms = (req,res)=>{
         if (err) {
             console.log(err);
         } else {
-            if(responseData.messages[0]['status'] === "0") {
+            if (responseData.messages[0]['status'] === "0") {
                 console.log("Message sent successfully.");
-                return res.status(200).json({responseData})
+                return res.status(200).json({ responseData })
             } else {
                 console.log(`Message failed with error: ${responseData.messages[0]['error-text']}`);
             }
         }
-    }) 
+    })
 
     //res.send(req.body);
     //console.log(req.body)
@@ -188,7 +182,7 @@ exports.sendSms = (req,res)=>{
     // );
 }
 
-exports.updateInfo = async (req,res) =>{
+exports.updateInfo = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         user.username = req.body.username
@@ -204,7 +198,7 @@ exports.updateInfo = async (req,res) =>{
     }
 }
 
-exports.upAvatar = async (req,res)=>{
+exports.upAvatar = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         if (user.avatarId != undefined && user.avatarId != '001') {
@@ -234,28 +228,29 @@ exports.upAvatar = async (req,res)=>{
     }
 }
 
-exports.addFriend = async (req,res) =>{
+exports.addFriend = async (req, res) => {
     try {
         let accUserId = req.params.userId
         let accFriendId = req.params.accFriendId
+
         const user = await User.findById(accUserId)
         const userFriend = await User.findById(accFriendId)
-        //console.log(accFriendId)
+
         user.listFriendId.push(accFriendId)
         userFriend.listFriendId.push(accUserId)
+
         await user.save()
         await userFriend.save()
-        
+
         res.status(200).json({
             message: 'add friend successful',
-            //list: user.listFriendId
         })
     } catch (error) {
         console.log(error)
     }
 }
 
-exports.deleteFriend = async (req,res)=>{
+exports.deleteFriend = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         let accFriendId = req.params.accFriendId
@@ -272,12 +267,12 @@ exports.deleteFriend = async (req,res)=>{
     }
 }
 
-exports.getListFriend = async (req,res) => {
+exports.getListFriend = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         const arrListFriendId = user.listFriendId
         let arrTemp = []
-        for(var i=0; i<arrListFriendId.length; i++){
+        for (var i = 0; i < arrListFriendId.length; i++) {
             const userFriend = await User.findById(arrListFriendId[i])
             const temp = {
                 userId: userFriend._id,
@@ -296,7 +291,7 @@ exports.getListFriend = async (req,res) => {
     }
 }
 
-exports.sendReport = async (req,res) =>{
+exports.sendReport = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         let accReportId = req.params.accFriendId
@@ -327,22 +322,22 @@ exports.logout = (req, res) => {
         })
 }
 
-exports.deleteAll = (req,res)=>{
+exports.deleteAll = (req, res) => {
     User
         .find()
         .remove()
-        .then(()=>{
+        .then(() => {
             res.status(200).json({
                 message: 'delete all'
+            })
         })
-    })
 }
 
-exports.deleteOne = (req,res)=>{
-    User    
-        .findOne({_id: req.params.userId})
+exports.deleteOne = (req, res) => {
+    User
+        .findOne({ _id: req.params.userId })
         .remove()
-        .then(()=>{
+        .then(() => {
             res.status(200).json({
                 message: 'delete one'
             })
