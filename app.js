@@ -14,6 +14,7 @@ const nexmo = new Nexmo({
 
 const userRouter = require('./routers/user')
 const musicRouter = require('./routers/music')
+const reportRouter = require('./routers/report')
 // const socketRouter = require('./routers/socket')
 
 mongoose
@@ -45,6 +46,7 @@ app.use(bodyParser.json());
 
 app.use('/user',userRouter)
 app.use('/music',musicRouter)
+app.use('/report',reportRouter)
 // app.use('/socket',socketRouter)
 
 

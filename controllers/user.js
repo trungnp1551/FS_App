@@ -12,6 +12,7 @@ const vonage = require('../routers/vonage')
 
 const ImageController = require('../controllers/image')
 const express = require('express')
+const { json } = require('express/lib/response')
 //const express = require('express')
 
 // const vonage = new Vonage({
@@ -39,7 +40,9 @@ exports.getOne = async (req, res) => {
             userId: user._id,
             username: user.username,
             avatarUrl: avatarUrl,
-            recentState: user.recentState
+            recentState: user.recentState,
+            sex: user.sex,
+            age: user.age
         }
 
         res.status(200).json({
@@ -198,11 +201,30 @@ exports.updateInfo = async (req, res) => {
     }
 }
 
+exports.changePassword = async (req, res) =>{
+    try {
+        const user = await User.findById(req.params.userId)
+        bcrypt.compare(req.body.oldPassword, user.password, (err, result) => {
+            if (result) {
+                bcrypt.hash(req.body.newPassword, 10, (err, hash) => {
+                    user.password = hash
+                    user.save()
+                })
+                return res.status(200).json({ message: 'Change password successful' })
+            }
+            res.status(200).json({ message: 'Old password does not match' })
+        })
+    } catch (error) {
+        console.log('err change pass')
+    }
+}
+
 exports.upAvatar = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         if (user.avatarId != undefined && user.avatarId != '001') {
-            await cloudinary.uploader.destroy(user.avatarId)
+            await ImageController.destroyImage(user.avatarId)
+            //await cloudinary.uploader.destroy(user.avatarId)
         }
         if (req.file == undefined) {
             user.avatarId = '001'
@@ -225,6 +247,20 @@ exports.upAvatar = async (req, res) => {
 
     } catch (error) {
         console.log(error)
+    }
+}
+
+exports.sendImage = async (req,res) =>{
+    try {
+        const image = await ImageController.upload(req.file.path)
+        await image.save()
+        res.status(200).json({
+            message: "Up image message successful",
+            imageId: image._id,
+            imageUrl: await ImageController.getUrl(image._id)
+        })
+    } catch (error) {
+        console.log(error);
     }
 }
 
@@ -252,14 +288,23 @@ exports.addFriend = async (req, res) => {
 
 exports.deleteFriend = async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId)
+        let userId = req.params.userId
         let accFriendId = req.params.accFriendId
-        let position = await user.listFriendId.indexOf(accFriendId)
-        user.listFriendId.splice(position, 1)
+
+        const user = await User.findById(userId)
+        const accFriend = await User.findById(accFriendId)
+
+        let positionFriend = await user.listFriendId.indexOf(accFriendId)
+        user.listFriendId.splice(positionFriend, 1)
         await user.save()
+
+        let positionUser = await accFriend.listFriendId.indexOf(userId)
+        accFriend.listFriendId.splice(positionUser, 1)
+        await accFriend.save()
+
         res.status(200).json({
-            message: 'done',
-            newList: user.listFriendId
+            message: 'delete done',
+            //newList: user.listFriendId
         })
 
     } catch (error) {
@@ -278,7 +323,9 @@ exports.getListFriend = async (req, res) => {
                 userId: userFriend._id,
                 username: userFriend.username,
                 avatarUrl: await ImageController.getUrl(userFriend.avatarId),
-                recentState: userFriend.recentState
+                recentState: userFriend.recentState,
+                sex: userFriend.sex,
+                age: userFriend.age
             }
             arrTemp.push(temp)
         }
@@ -304,22 +351,34 @@ exports.sendReport = async (req, res) => {
     }
 }
 
-exports.logout = (req, res) => {
-    User
-        .findOne({ _id: req.params.userId })
-        .then(user => {
-            user.token = undefined
-            user.save()
-            res.status(200).json({
-                message: 'Logout successful',
-                token: user.token
-            })
+exports.logOut = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId)
+        user.token = undefined
+        user.recentState = false
+        await user.save()
+        res.status(200).json({
+            message: 'log out successful'
         })
-        .catch(err => {
-            res.status(500).json({
-                err: err
-            })
-        })
+    } catch (error) {
+        console.log('err');
+    }
+    // User
+    //     .findOne({ _id: req.params.userId })
+    //     .then(user => {
+    //         user.token = undefined
+    //         user.recentState = false;
+    //         user.save()
+    //         res.status(200).json({
+    //             message: 'Logout successful',
+    //             token: user.token
+    //         })
+    //     })
+    //     .catch(err => {
+    //         res.status(500).json({
+    //             err: err
+    //         })
+    //     })
 }
 
 exports.deleteAll = (req, res) => {

@@ -17,6 +17,16 @@ exports.upload = async (path) => {
     }
 }
 
+exports.destroyImage = async (id) =>{
+    try {
+        await cloudinary.uploader.destroy(id)
+        return true;
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+}
+
 exports.getUrl = async (id)=>{
     try {
         const image = await Image.findById(id)

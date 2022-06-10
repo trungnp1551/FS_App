@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-const music = require('../models/music')
 require('dotenv').config()
 const Music = require('../models/music')
 

@@ -20,6 +20,10 @@ router
     .post(UserController.logIn)
 
 router
+    .route('/logout/:userId')
+    .get(UserController.logOut)
+
+router
     .route('/:userId')
     .get(/*checkAuth,*/ UserController.getOne)
     .delete(UserController.deleteOne)
@@ -31,6 +35,9 @@ router
 router
     .route('/:userId/addfriend/:accFriendId')
     .get(UserController.addFriend)
+
+router
+    .route('/:userId/deletefriend/:accFriendId')
     .delete(UserController.deleteFriend)
 
 router
@@ -38,8 +45,16 @@ router
     .post(upload.single("avatar"),UserController.upAvatar)
 
 router
+    .route('/sendImageMessage')
+    .post(upload.single("image"),UserController.sendImage)
+
+router
     .route('/:userId/updateInfo')
     .post(UserController.updateInfo)
+
+router
+    .route('/:userId/changePassword')
+    .post(UserController.changePassword)
 
 router
     .route('/:userId/getListFriend')

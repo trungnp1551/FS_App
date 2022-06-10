@@ -1,18 +1,24 @@
 var listId = [];
 var clients = {};
 var listSocket = [];
+var listImageMessageId = [];
+
+const Image = require('../models/image')
+const ImageController = require('../controllers/image');
 
 module.exports = (app, io) => {
     io.on("connection", (socket) => {
 
         socket.on('sigin', (id) => {
-            //console.log(clients[id]);
             clients[id] = socket;
-            console.log(clients);
-            //console.log(clients[id])
-            //console.log(clients);
+            //console.log(clients[id]);
         })
-        socket.on('message', (data) => {
+        socket.on('message', async (data) =>  {
+            if(data.isImage){
+                const imageUrl = await ImageController.getUrl(data.message)
+                listImageMessageId.push(data.message)
+                data.message = imageUrl
+            }
             console.log(data);
             let targetId = data.targetId;
             if (clients[targetId])
@@ -48,6 +54,15 @@ module.exports = (app, io) => {
             console.log(listId);
         })
         socket.on('disconnectRoom', (targerId) => {
+            console.log(listImageMessageId)
+            
+            listImageMessageId.forEach(async (id)=>{
+                await ImageController.destroyImage(id)
+                const image = Image.findById(id)
+                image.remove()
+            })
+            listImageMessageId.length = 0;
+            console.log(listImageMessageId)
             if (clients[targerId])
                 clients[targerId].emit('beDisconnectRoom', '');
         })
