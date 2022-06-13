@@ -20,7 +20,7 @@ exports.getAll = async (req, res) =>{
 exports.sendReport = async (req,res) => {
     try {
         const report = new Report({
-            _id: mongoose.Types.ObjectId,
+            _id: mongoose.Types.ObjectId(),
             userId: req.params.userId,
             friendId: req.params.friendId,
             content: req.body.content

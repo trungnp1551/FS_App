@@ -15,7 +15,8 @@ const userSchema = mongoose.Schema({
     avatarId: String,
     age: String,
     sex: String,
-    recentState: Boolean
+    recentState: Boolean,
+    settingId: String
 },{
     versionKey: false
 })

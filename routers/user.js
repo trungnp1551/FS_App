@@ -53,6 +53,10 @@ router
     .post(UserController.updateInfo)
 
 router
+    .route('/:userId/updateSetting')
+    .post(UserController.updateSetting)
+
+router
     .route('/:userId/changePassword')
     .post(UserController.changePassword)
 

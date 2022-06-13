@@ -1,18 +1,22 @@
 const mongoose = require('mongoose')
 const bcrypt = require('bcrypt')
+
 const User = require('../models/user')
-const Image = require('../models/image')
+//const Image = require('../models/image')
+const Setting = require('../models/setting')
+
 //const Nexmo = require('nexmo')
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
-const cloudinary = require('../routers/cloudinary')
+// const cloudinary = require('../routers/cloudinary')
 const vonage = require('../routers/vonage')
 
 //const Vonage = require('@vonage/server-sdk')
 
 const ImageController = require('../controllers/image')
-const express = require('express')
-const { json } = require('express/lib/response')
+const { set } = require('../app')
+// const express = require('express')
+// const { json } = require('express/lib/response')
 //const express = require('express')
 
 // const vonage = new Vonage({
@@ -67,6 +71,14 @@ exports.signUp = (req, res) => {
                     if (err) {
                         return res.status(200).json({ message: 'err' })
                     } else {
+                        const setting = new Setting({
+                            _id: new mongoose.Types.ObjectId(),
+                            sound: true,
+                            vibration: true,
+                            notification: true,
+                            status: true,
+                        })
+                        setting.save()
                         const user = new User({
                             _id: new mongoose.Types.ObjectId(),
                             phoneNumber: req.body.phonenumber,
@@ -75,14 +87,16 @@ exports.signUp = (req, res) => {
                             avatarId: '001',
                             age: '18',
                             sex: 'male',
-                            recentState: false
+                            recentState: false,
+                            settingId: setting._id.toString()
                         });
                         user
                             .save()
                             .then(user => {
                                 res.status(200).json({
                                     message: 'create successful',
-                                    user
+                                    user,
+                                    setting
                                 })
                             })
                             .catch(err => {
@@ -111,6 +125,7 @@ exports.logIn = async (req, res) => {
         res.status(200).json({ type: 'Not exists user' })
     } else {
         const avatarUrl = await ImageController.getUrl(user.avatarId)
+        const settingUser = await Setting.findById(user.settingId)
         bcrypt.compare(req.body.password, user.password, (err, result) => {
             if (result) {
                 const token = jwt.sign({
@@ -119,7 +134,9 @@ exports.logIn = async (req, res) => {
                     expiresIn: '1h'
                 })
                 user.token = token
-                user.recentState = true
+                if (settingUser.status) {
+                    user.recentState = true
+                }
                 user.save()
                 //console.log(token)
                 ///////////
@@ -138,7 +155,8 @@ exports.logIn = async (req, res) => {
                 }
                 return res.status(200).json({
                     type: 'login successful',
-                    user: temp
+                    user: temp,
+                    setting: settingUser
 
                 })
             }
@@ -146,7 +164,6 @@ exports.logIn = async (req, res) => {
             return res.status(200).json({ type: 'Login fail' })
         })
     }
-
 }
 
 exports.sendSms = (req, res) => {
@@ -201,7 +218,30 @@ exports.updateInfo = async (req, res) => {
     }
 }
 
-exports.changePassword = async (req, res) =>{
+exports.updateSetting = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId)
+        const setting = await Setting.findById(user.settingId)
+
+        setting.sound = req.body.sound
+        setting.notification = req.body.notification
+        setting.vibration = req.body.vibration
+        setting.status = req.body.status
+
+        user.recentState = setting.status
+        
+        await user.save()
+        await setting.save()
+        res.status(200).json({
+            message: 'update setting successful',
+            setting
+        })
+    } catch (error) {
+        console.log('err')
+    }
+}
+
+exports.changePassword = async (req, res) => {
     try {
         const user = await User.findById(req.params.userId)
         bcrypt.compare(req.body.oldPassword, user.password, (err, result) => {
@@ -250,7 +290,7 @@ exports.upAvatar = async (req, res) => {
     }
 }
 
-exports.sendImage = async (req,res) =>{
+exports.sendImage = async (req, res) => {
     try {
         const image = await ImageController.upload(req.file.path)
         await image.save()
